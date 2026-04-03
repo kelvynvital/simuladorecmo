@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimECMO Pro — Simulador Avançado de ECMO</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --color-background-primary:#fff;
+  --color-background-secondary:#f5f5f3;
+  --color-background-tertiary:#eeece6;
+  --color-background-info:#e6f1fb;
+  --color-background-danger:#fcebeb;
+  --color-background-warning:#faeeda;
+  --color-background-success:#eaf3de;
+  --color-text-primary:#1a1a18;
+  --color-text-secondary:#5f5e5a;
+  --color-text-tertiary:#888780;
+  --color-text-info:#185fa5;
+  --color-text-danger:#a32d2d;
+  --color-text-warning:#854f0b;
+  --color-text-success:#3b6d11;
+  --color-border-tertiary:rgba(0,0,0,0.12);
+  --color-border-secondary:rgba(0,0,0,0.22);
+  --color-border-primary:rgba(0,0,0,0.35);
+  --color-border-info:#b5d4f4;
+  --color-border-danger:#f7c1c1;
+  --color-border-warning:#fac775;
+  --color-border-success:#c0dd97;
+  --font-sans:system-ui,-apple-system,sans-serif;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --color-background-primary:#1e1e1c;
+  --color-background-secondary:#2a2a27;
+  --color-background-tertiary:#242421;
+  --color-background-info:#0c447c;
+  --color-background-danger:#791f1f;
+  --color-background-warning:#633806;
+  --color-background-success:#27500a;
+  --color-text-primary:#e8e6de;
+  --color-text-secondary:#b4b2a9;
+  --color-text-tertiary:#888780;
+  --color-text-info:#85b7eb;
+  --color-text-danger:#f09595;
+  --color-text-warning:#fac775;
+  --color-text-success:#97c459;
+  --color-border-tertiary:rgba(255,255,255,0.1);
+  --color-border-secondary:rgba(255,255,255,0.2);
+  --color-border-info:#185fa5;
+  --color-border-danger:#a32d2d;
+  --color-border-warning:#854f0b;
+  --color-border-success:#3b6d11;
+}}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);min-height:100vh}
+.sim-wrap{display:flex;flex-direction:column;min-height:100vh}
+.top-bar{background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.mode-btns{display:flex;gap:4px}
+.mode-btn{font-size:11px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .2s}
+.mode-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.main-area{display:flex;flex:1;min-height:600px}
+.sidebar-left{width:200px;min-width:160px;border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);overflow-y:auto;flex-shrink:0}
+.sidebar-right{width:260px;min-width:200px;border-left:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column}
+.canvas-area{flex:1;position:relative;overflow:hidden;background:#1a2a1e;min-width:280px}
+.section-hdr{font-size:10px;font-weight:500;color:var(--color-text-tertiary);padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.05em}
+.param-row{display:flex;align-items:center;justify-content:space-between;padding:4px 10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.param-label{font-size:11px;color:var(--color-text-secondary);flex:1}
+.param-val{font-size:12px;font-weight:500;min-width:52px;text-align:right}
+.param-val.warn{color:var(--color-text-warning)}
+.param-val.danger{color:var(--color-text-danger)}
+.param-val.ok{color:var(--color-text-success)}
+.slider-row{padding:4px 10px 6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.slider-row label{font-size:11px;color:var(--color-text-secondary);display:flex;justify-content:space-between}
+.slider-row input[type=range]{width:100%;margin:2px 0}
+.alert-box{margin:8px;padding:8px;border-radius:var(--border-radius-md);font-size:11px;line-height:1.5}
+.alert-danger{background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger)}
+.alert-warn{background:var(--color-background-warning);color:var(--color-text-warning);border:0.5px solid var(--color-border-warning)}
+.alert-info{background:var(--color-background-info);color:var(--color-text-info);border:0.5px solid var(--color-border-info)}
+.ai-panel{flex:1;overflow-y:auto;padding:8px}
+.ai-msg{font-size:11px;line-height:1.6;color:var(--color-text-secondary);padding:6px 8px;border-radius:var(--border-radius-md);background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);margin-bottom:6px}
+.ai-msg strong{color:var(--color-text-primary);font-weight:500}
+.comp-btn{width:100%;text-align:left;padding:5px 10px;font-size:11px;border:none;background:none;color:var(--color-text-secondary);cursor:pointer;border-bottom:0.5px solid var(--color-border-tertiary);transition:background .15s}
+.comp-btn:hover{background:var(--color-background-primary);color:var(--color-text-primary)}
+.comp-btn.active-comp{background:var(--color-background-danger);color:var(--color-text-danger)}
+.scenario-btn{width:calc(50% - 4px);font-size:10px;padding:5px 6px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);margin:2px;transition:all .2s}
+.scenario-btn:hover{background:var(--color-background-secondary)}
+.scenario-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.quiz-area{padding:10px;display:flex;flex-direction:column;gap:8px}
+.quiz-q{font-size:12px;font-weight:500;color:var(--color-text-primary);line-height:1.5}
+.quiz-opt{width:100%;text-align:left;padding:7px 10px;font-size:11px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-primary);margin-bottom:4px;transition:all .2s;line-height:1.4}
+.quiz-opt:hover{background:var(--color-background-secondary)}
+.quiz-opt.correct{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.quiz-opt.wrong{background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger)}
+.quiz-fb{font-size:11px;line-height:1.6;padding:8px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.next-btn{font-size:11px;padding:6px 14px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-primary)}
+.next-btn:hover{background:var(--color-background-secondary)}
+.tooltip-box{position:absolute;z-index:100;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:10px 12px;max-width:220px;pointer-events:none;display:none}
+.tooltip-box.visible{display:block}
+.tooltip-box h3{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--color-text-primary)}
+.tooltip-box p{font-size:11px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:3px}
+.node{cursor:pointer;opacity:1;transition:opacity .15s}
+.node:hover{opacity:0.82}
+.heartbeat{animation:hb .8s ease-in-out infinite}
+@keyframes hb{0%,100%{r:4}50%{r:6}}
+.flow-anim{animation:flowpulse 1.4s linear infinite}
+@keyframes flowpulse{0%{stroke-dashoffset:60}100%{stroke-dashoffset:0}}
+.pump-spin{animation:spin 1.2s linear infinite;transform-origin:310px 235px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.heartbeat,.flow-anim,.pump-spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="sim-wrap">
+<div class="top-bar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:8px;height:8px;border-radius:50%;background:#22c55e"></div>
+    <strong style="font-size:13px">SimECMO Pro</strong>
+    <span style="font-size:11px;color:var(--color-text-tertiary)" id="ecmo-mode-label">VA-ECMO</span>
+  </div>
+  <div class="mode-btns">
+    <button class="mode-btn active" onclick="setMode('monitor')">Monitor</button>
+    <button class="mode-btn" onclick="setMode('controls')">Controles</button>
+    <button class="mode-btn" onclick="setMode('complications')">Complicações</button>
+    <button class="mode-btn" onclick="setMode('quiz')">Quiz</button>
+  </div>
+</div>
+
+<div class="main-area">
+<div class="sidebar-left">
+  <div class="section-hdr">Paciente</div>
+  <div class="param-row"><span class="param-label">FC (bpm)</span><span class="param-val" id="p-hr">110</span></div>
+  <div class="param-row"><span class="param-label">PA (mmHg)</span><span class="param-val" id="p-bp">90/60</span></div>
+  <div class="param-row"><span class="param-label">PAM (mmHg)</span><span class="param-val" id="p-map">70</span></div>
+  <div class="param-row"><span class="param-label">DC (L/min)</span><span class="param-val" id="p-co">1.8</span></div>
+  <div class="param-row"><span class="param-label">SaO₂ (%)</span><span class="param-val" id="p-sao2">94</span></div>
+  <div class="param-row"><span class="param-label">SvO₂ (%)</span><span class="param-val" id="p-svo2">58</span></div>
+  <div class="param-row"><span class="param-label">Lactato</span><span class="param-val" id="p-lac">3.2</span></div>
+  <div class="param-row"><span class="param-label">Hb (g/dL)</span><span class="param-val" id="p-hb">9.0</span></div>
+  <div class="param-row"><span class="param-label">RVS</span><span class="param-val" id="p-svr">1200</span></div>
+  <div class="section-hdr">ECMO</div>
+  <div class="param-row"><span class="param-label">Fluxo (L/min)</span><span class="param-val" id="e-flow">3.5</span></div>
+  <div class="param-row"><span class="param-label">RPM</span><span class="param-val" id="e-rpm">3200</span></div>
+  <div class="param-row"><span class="param-label">Sweep (L/min)</span><span class="param-val" id="e-sweep">4.0</span></div>
+  <div class="param-row"><span class="param-label">FiO₂ ECMO (%)</span><span class="param-val" id="e-fio2">100</span></div>
+  <div class="param-row"><span class="param-label">Temp (°C)</span><span class="param-val" id="e-temp">37.0</span></div>
+  <div class="param-row"><span class="param-label">P pré-bomba</span><span class="param-val" id="e-ppre">-60</span></div>
+  <div class="param-row"><span class="param-label">P pós-bomba</span><span class="param-val" id="e-ppost">280</span></div>
+  <div class="param-row"><span class="param-label">ΔP oxigenador</span><span class="param-val" id="e-dp">30</span></div>
+  <div class="section-hdr">Gasometria</div>
+  <div class="param-row"><span class="param-label">pH</span><span class="param-val" id="g-ph">7.28</span></div>
+  <div class="param-row"><span class="param-label">pCO₂</span><span class="param-val" id="g-pco2">52</span></div>
+  <div class="param-row"><span class="param-label">pO₂</span><span class="param-val" id="g-po2">68</span></div>
+  <div class="param-row"><span class="param-label">HCO₃⁻</span><span class="param-val" id="g-hco3">18</span></div>
+  <div class="param-row"><span class="param-label">BE</span><span class="param-val" id="g-be">-7</span></div>
+</div>
+
+<div class="canvas-area" id="canvas-area">
+<svg width="100%" height="100%" viewBox="0 0 560 480" id="ecmo-svg" style="display:block;min-height:480px">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="560" height="480" fill="#1a2a1e"/>
+<rect x="10" y="10" width="540" height="460" rx="8" fill="#1e3024" stroke="#2a4030" stroke-width="0.5"/>
+<rect x="10" y="400" width="540" height="70" rx="4" fill="#162a1c"/>
+<rect x="80" y="200" width="220" height="100" rx="6" fill="#2a4035" stroke="#3d5a48" stroke-width="0.5"/>
+<rect x="80" y="190" width="220" height="30" rx="4" fill="#1e3028" stroke="#3d5a48" stroke-width="0.5"/>
+<rect x="90" y="300" width="8" height="90" rx="2" fill="#233328"/>
+<rect x="280" y="300" width="8" height="90" rx="2" fill="#233328"/>
+<ellipse cx="190" cy="250" rx="70" ry="28" fill="#c9a882" stroke="#b8976e" stroke-width="0.5"/>
+<ellipse cx="260" cy="230" rx="22" ry="20" fill="#d4b08a" stroke="#b8976e" stroke-width="0.5"/>
+<rect x="268" y="232" width="30" height="5" rx="2" fill="#aaa" stroke="#888" stroke-width="0.3"/>
+<text x="302" y="237" fill="#aaa" font-size="8" font-family="system-ui,sans-serif">ETT</text>
+<circle cx="185" cy="242" r="4" fill="#ef4444" class="heartbeat" id="heart-dot"/>
+
+<rect x="145" y="275" width="12" height="50" rx="3" fill="#4a90d9" stroke="#2563eb" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Cânula de Drenagem (Venosa)','Drena sangue venoso desoxigenado do átrio direito ou veia cava. Em VA-ECMO: veia femoral ou jugular interna. Em VV-ECMO: veia femoral bilateral ou jugular.','• Posicionamento incorreto → ↓ fluxo\n• Sucção (chattering): pré-carga inadequada\n• Trombose: ↑ pressão pré-bomba, ↓ fluxo','Monitore pressão pré-bomba (< -80 mmHg indica problema)')"/>
+<text x="141" y="335" fill="#93c5fd" font-size="7" font-family="system-ui,sans-serif">Drenagem</text>
+
+<rect x="205" y="270" width="12" height="55" rx="3" fill="#f97316" stroke="#ea580c" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Cânula de Retorno (Arterial)','Retorna sangue oxigenado à circulação sistêmica. Em VA-ECMO: artéria femoral (fluxo retrógrado). Em VV-ECMO: veia jugular interna.','• Isquemia de membro: verificar pulso distal\n• Síndrome de Harlequin (VA-ECMO)\n• Dissecção arterial','Em VA-ECMO femoral, monitorar saturação no MSE e MSS para identificar síndrome de Harlequin')"/>
+<text x="218" y="335" fill="#fdba74" font-size="7" font-family="system-ui,sans-serif">Retorno</text>
+
+<path d="M151 325 L151 380 L310 380 L310 260" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round"
+  class="node" onclick="showTooltip(event,'Tubulação Venosa','Conduz sangue desoxigenado da cânula de drenagem até a bomba centrífuga. Revestida de heparina (CARMEDA® ou similar).','• Formação de trombos\n• Dobramento (kinking)\n• Desconexão acidental','Inspecionar visualmente a cada hora. Ausência de bolhas.')"/>
+<path d="M151 325 L151 380 L310 380 L310 260" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6 10" class="flow-anim" style="stroke-dashoffset:60"/>
+
+<circle cx="310" cy="235" r="30" fill="#2d4a35" stroke="#4a7a58" stroke-width="1"
+  class="node" onclick="showTooltip(event,'Bomba Centrífuga','Coração artificial do circuito. Gera força centrífuga para propulsionar o sangue. Fluxo proporcional ao RPM e pós-carga.','• Baixo fluxo: ↓ RPM, ↑ RVS, hipovolemia\n• Chattering: sucção excessiva por baixo pré-carga\n• Hemólise: RPM excessivo','Fluxo alvo: 60-80 mL/kg/min. Monitorar ΔP pré/pós-bomba')"/>
+<g class="pump-spin" id="pump-rotor">
+  <line x1="310" y1="210" x2="310" y2="222" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="310" y1="248" x2="310" y2="260" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="285" y1="235" x2="297" y2="235" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="323" y1="235" x2="335" y2="235" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="293" y1="218" x2="301" y2="226" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="319" y1="244" x2="327" y2="252" stroke="#6ee7b7" stroke-width="2" stroke-linecap="round"/>
+</g>
+<circle cx="310" cy="235" r="6" fill="#6ee7b7"/>
+<text x="310" y="280" fill="#6ee7b7" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">BOMBA</text>
+
+<rect x="285" y="195" width="24" height="14" rx="3" fill="#1e3a2a" stroke="#4a7a58" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Sensor P Pré-Bomba','Mede pressão negativa antes da bomba. Indica resistência à drenagem venosa.','• > -80 mmHg: hipovolemia, posição da cânula, kinking\n• Alarme de sucção: risco de hemólise','Valor normal: -40 a -60 mmHg. Alarme em < -80 mmHg')"/>
+<text x="297" y="205" fill="#6ee7b7" font-size="7" text-anchor="middle" font-family="system-ui,sans-serif" id="ppre-label">-60</text>
+
+<rect x="336" y="195" width="24" height="14" rx="3" fill="#1e3a2a" stroke="#4a7a58" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Sensor P Pós-Bomba','Mede pressão positiva após a bomba, antes do oxigenador. Indica resistência do circuito.','• > 350 mmHg: trombose no oxigenador, kinking arterial\n• ↑ ΔP: falha do oxigenador','ΔP oxigenador: P pós-bomba — P pós-oxigenador. Normal < 40-50 mmHg')"/>
+<text x="348" y="205" fill="#6ee7b7" font-size="7" text-anchor="middle" font-family="system-ui,sans-serif" id="ppost-label">280</text>
+
+<path d="M340 235 L395 235" fill="none" stroke="#6ee7b7" stroke-width="5" stroke-linecap="round"/>
+<path d="M340 235 L395 235" fill="none" stroke="#a7f3d0" stroke-width="2" stroke-dasharray="6 10" class="flow-anim" style="stroke-dashoffset:60"/>
+
+<rect x="395" y="195" width="65" height="80" rx="8" fill="#1e3a45" stroke="#2d6a8a" stroke-width="1"
+  class="node" onclick="showTooltip(event,'Oxigenador (Membrana)','Pulmão artificial. Fibras ocas de polimetilpenteno (PMP) permitem troca gasosa: O₂ entra, CO₂ sai. Não há contato sangue-gás.','• ↑ ΔP transmembrana (> 50 mmHg): trombose\n• Plasma leakage: líquido na fase gasosa\n• Falha de troca: ↓ pO₂ pós-membrana','Verificar pO₂ pós-oxigenador > 400 mmHg com FiO₂ 100%. ΔP crescente indica necessidade de troca')"/>
+<line x1="405" y1="205" x2="405" y2="265" stroke="#2d6a8a" stroke-width="1.5" opacity="0.6"/>
+<line x1="415" y1="205" x2="415" y2="265" stroke="#2d6a8a" stroke-width="1.5" opacity="0.6"/>
+<line x1="425" y1="205" x2="425" y2="265" stroke="#2d6a8a" stroke-width="1.5" opacity="0.6"/>
+<line x1="435" y1="205" x2="435" y2="265" stroke="#2d6a8a" stroke-width="1.5" opacity="0.6"/>
+<line x1="445" y1="205" x2="445" y2="265" stroke="#2d6a8a" stroke-width="1.5" opacity="0.6"/>
+<text x="428" y="290" fill="#7dd3fc" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">OXIGENADOR</text>
+
+<rect x="395" y="155" width="65" height="30" rx="5" fill="#1e3a2a" stroke="#4a7a58" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Blender de Gases (Sweep)','Controla mistura de O₂ e ar enviada ao oxigenador. Sweep gas flow determina eliminação de CO₂ (1:1 com pCO₂). FiO₂ determina oferta de O₂.','• ↓ sweep → hipercapnia, ↑ pCO₂\n• ↑ sweep excessivo → hipocapnia, vasoconstrição cerebral\n• Obstrução → acúmulo de CO₂','Regra prática: sweep flow ≈ ECO flow para normocarbia. Ajustar baseado na gasometria')"/>
+<line x1="428" y1="185" x2="428" y2="195" stroke="#4a7a58" stroke-width="2"/>
+<text x="428" y="170" fill="#6ee7b7" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">BLENDER</text>
+
+<rect x="460" y="310" width="55" height="35" rx="5" fill="#3a2a1e" stroke="#7a5a38" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Aquecedor/Trocador Térmico','Mantém temperatura do sangue entre 35-37°C. Usado também para hipotermia terapêutica (33-36°C pós-PCR) ou aquecimento em hipotermia acidental.','• Hipertermia: ↑ consumo O₂, riscos neurológicos\n• Hipotermia: coagulopatia, arritmias\n• Falha: sangue frio → vasoconstrição','Monitorar temperatura central e diferença pré/pós-aquecedor. Meta: normotermia ou hipotermia conforme protocolo')"/>
+<text x="488" y="332" fill="#fbbf24" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">AQUECEDOR</text>
+
+<path d="M460 235 L490 235 L490 310" fill="none" stroke="#f97316" stroke-width="5" stroke-linecap="round"/>
+<path d="M490 345 L490 380 L211 380 L211 325" fill="none" stroke="#f97316" stroke-width="5" stroke-linecap="round"/>
+<path d="M460 235 L490 235 L490 310" fill="none" stroke="#fed7aa" stroke-width="2" stroke-dasharray="6 10" class="flow-anim" style="stroke-dashoffset:60"/>
+<path d="M490 345 L490 380 L211 380 L211 325" fill="none" stroke="#fed7aa" stroke-width="2" stroke-dasharray="6 10" class="flow-anim" style="stroke-dashoffset:60"/>
+
+<rect x="30" y="80" width="110" height="90" rx="6" fill="#111" stroke="#333" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Monitor Multiparamétrico','Monitora continuamente: ECG, SpO₂, pressão arterial invasiva (PAI), capnografia, temperatura. Integrado ao circuito de ECMO.','• Artefatos de ECMO no ECG\n• SpO₂ não confiável em baixo DC\n• PAI essencial (PANI imprecisa)','Use PAI radial ou femoral. PANI subestima pressão em choque')"/>
+<polyline points="35,115 45,115 50,100 55,135 60,115 75,115 80,108 85,125 90,115 100,115 105,110 110,120 115,115 130,115" fill="none" stroke="#22c55e" stroke-width="1"/>
+<rect x="35" y="130" width="90" height="6" rx="2" fill="#1a3a1a"/>
+<rect x="35" y="130" width="75" height="6" rx="2" fill="#22c55e"/>
+<text x="35" y="155" fill="#666" font-size="7" font-family="system-ui,sans-serif">SpO₂: </text>
+<text x="60" y="155" fill="#22c55e" font-size="8" font-family="system-ui,sans-serif" id="mon-spo2">94%</text>
+<text x="35" y="165" fill="#666" font-size="7" font-family="system-ui,sans-serif">HR:</text>
+<text x="52" y="165" fill="#ef4444" font-size="8" font-family="system-ui,sans-serif" id="mon-hr">110</text>
+
+<rect x="30" y="190" width="80" height="100" rx="6" fill="#1a2a35" stroke="#2a4a5a" stroke-width="0.5"
+  class="node" onclick="showTooltip(event,'Ventilador Mecânico','Em ECMO VV: estratégia ultra-protetora (Vt 2-4 mL/kg, PEEP 10-15 cmH₂O, FR 10, FiO₂ 0.3). O ECMO faz a troca gasosa. O pulmão repousa.','• Barotrauma: PEEP alta sem ECMO suficiente\n• Atelectrauma: PEEP baixa\n• VILI (Ventilator-Induced Lung Injury)','Objetivo: Rest lung. Compliance monitorar recuperação. Em VA-ECMO: ventilação normal, ajuste conforme função pulmonar')"/>
+<text x="70" y="215" fill="#7dd3fc" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">VENT</text>
+<text x="70" y="228" fill="#7dd3fc" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">Vt: 350</text>
+<text x="70" y="240" fill="#7dd3fc" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">PEEP: 10</text>
+<text x="70" y="252" fill="#7dd3fc" font-size="8" text-anchor="middle" font-family="system-ui,sans-serif">FiO₂: 0.5</text>
+<line x1="110" y1="235" x2="260" y2="232" stroke="#7dd3fc" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+<text x="310" y="170" fill="#ef4444" font-size="10" text-anchor="middle" font-family="system-ui,sans-serif" id="comp-indicator" style="display:none">⚠ ALARME</text>
+
+<rect x="10" y="415" width="200" height="50" rx="4" fill="#1e3024" opacity="0.8"/>
+<circle cx="22" cy="428" r="4" fill="#3b82f6"/>
+<text x="30" y="431" fill="#93c5fd" font-size="8" font-family="system-ui,sans-serif">Sangue venoso (desoxigenado)</text>
+<circle cx="22" cy="445" r="4" fill="#f97316"/>
+<text x="30" y="448" fill="#fdba74" font-size="8" font-family="system-ui,sans-serif">Sangue arterial (oxigenado)</text>
+<text x="10" y="465" fill="#6ee7b7" font-size="7" font-family="system-ui,sans-serif">Clique nos componentes para informações</text>
+</svg>
+
+<div class="tooltip-box" id="tooltip">
+  <h3 id="tt-title"></h3>
+  <p id="tt-func" style="margin-bottom:5px"></p>
+  <div style="font-size:10px;font-weight:500;color:var(--color-text-danger);margin:3px 0">Complicações:</div>
+  <p id="tt-comp"></p>
+  <div style="font-size:10px;font-weight:500;color:var(--color-text-info);margin:3px 0">Impacto clínico:</div>
+  <p id="tt-imp"></p>
+</div>
+</div>
+
+<div class="sidebar-right">
+  <div id="mode-monitor">
+    <div class="section-hdr">Cenário Clínico</div>
+    <div style="padding:6px 8px;display:flex;flex-wrap:wrap">
+      <button class="scenario-btn active" onclick="loadScenario('cardiogenic',event)">Choque Cardiogênico</button>
+      <button class="scenario-btn" onclick="loadScenario('ards',event)">SDRA Grave</button>
+      <button class="scenario-btn" onclick="loadScenario('sepsis',event)">Sepse</button>
+      <button class="scenario-btn" onclick="loadScenario('postcardiac',event)">Pós-Cirurgia Cardíaca</button>
+    </div>
+    <div class="section-hdr">IA Clínica</div>
+    <div class="ai-panel">
+      <div class="ai-msg" id="ai-msg-1"><strong>Análise em Tempo Real</strong><br>Paciente com choque cardiogênico em VA-ECMO. DC nativo baixo (1,8 L/min), dependência do suporte.</div>
+      <div class="ai-msg" id="ai-msg-2"></div>
+      <div class="ai-msg" id="ai-msg-3"></div>
+    </div>
+    <div id="alerts-area" style="padding:0 4px 8px"></div>
+  </div>
+
+  <div id="mode-controls" style="display:none;overflow-y:auto;flex:1">
+    <div class="section-hdr">Ajustar Parâmetros ECMO</div>
+    <div class="slider-row"><label>Fluxo ECMO (L/min) <span id="sl-flow-val">3.5</span></label><input type="range" min="1" max="7" step="0.1" value="3.5" oninput="adjustParam('flow',this.value)"></div>
+    <div class="slider-row"><label>RPM Bomba <span id="sl-rpm-val">3200</span></label><input type="range" min="1500" max="5000" step="50" value="3200" oninput="adjustParam('rpm',this.value)"></div>
+    <div class="slider-row"><label>Sweep Gas (L/min) <span id="sl-sweep-val">4.0</span></label><input type="range" min="0.5" max="15" step="0.5" value="4" oninput="adjustParam('sweep',this.value)"></div>
+    <div class="slider-row"><label>FiO₂ ECMO (%) <span id="sl-fio2-val">100</span></label><input type="range" min="21" max="100" step="1" value="100" oninput="adjustParam('fio2',this.value)"></div>
+    <div class="slider-row"><label>Temperatura (°C) <span id="sl-temp-val">37.0</span></label><input type="range" min="33" max="39" step="0.1" value="37" oninput="adjustParam('temp',this.value)"></div>
+    <div class="section-hdr">Paciente</div>
+    <div class="slider-row"><label>Hemoglobina (g/dL) <span id="sl-hb-val">9.0</span></label><input type="range" min="5" max="15" step="0.5" value="9" oninput="adjustParam('hb',this.value)"></div>
+    <div class="slider-row"><label>Volume (Volemia %) <span id="sl-vol-val">85</span></label><input type="range" min="60" max="120" step="1" value="85" oninput="adjustParam('vol',this.value)"></div>
+    <div class="section-hdr">Tipo ECMO</div>
+    <div style="display:flex;gap:8px;padding:6px 10px">
+      <button class="scenario-btn active" id="btn-va" onclick="setEcmoMode('VA')">VA-ECMO</button>
+      <button class="scenario-btn" id="btn-vv" onclick="setEcmoMode('VV')">VV-ECMO</button>
+    </div>
+    <div class="ai-panel" style="height:120px;border-top:0.5px solid var(--color-border-tertiary)">
+      <div class="ai-msg" id="ctrl-ai-msg">Ajuste os parâmetros para ver o impacto fisiológico em tempo real.</div>
+    </div>
+  </div>
+
+  <div id="mode-complications" style="display:none;overflow-y:auto;flex:1">
+    <div class="section-hdr">Simular Complicação</div>
+    <button class="comp-btn" id="cb-thrombus" onclick="activateComplication('thrombus')">Trombo no Oxigenador</button>
+    <button class="comp-btn" id="cb-oxygenator" onclick="activateComplication('oxygenator')">Falha do Oxigenador</button>
+    <button class="comp-btn" id="cb-recirc" onclick="activateComplication('recirc')">Recirculação (VV)</button>
+    <button class="comp-btn" id="cb-hypovolemia" onclick="activateComplication('hypovolemia')">Hipovolemia</button>
+    <button class="comp-btn" id="cb-airembolism" onclick="activateComplication('airembolism')">Entrada de Ar</button>
+    <button class="comp-btn" id="cb-hemolysis" onclick="activateComplication('hemolysis')">Hemólise</button>
+    <button class="comp-btn" id="cb-malpositioning" onclick="activateComplication('malpositioning')">Cânula Malposicionada</button>
+    <button class="comp-btn" id="cb-pumpdysf" onclick="activateComplication('pumpdysf')">Disfunção da Bomba</button>
+    <button class="comp-btn" style="color:var(--color-text-success);background:var(--color-background-success)" onclick="clearComplications(false)">Limpar Complicações</button>
+    <div class="section-hdr">Análise da Complicação</div>
+    <div class="ai-panel" id="comp-ai-panel" style="height:200px">
+      <div class="ai-msg">Selecione uma complicação para ver parâmetros alterados, fisiopatologia e condutas.</div>
+    </div>
+  </div>
+
+  <div id="mode-quiz" style="display:none;overflow-y:auto;flex:1">
+    <div class="quiz-area" id="quiz-area"></div>
+  </div>
+</div>
+</div>
+
+<script>
+var state={mode:'monitor',ecmoMode:'VA',scenario:'cardiogenic',complication:null,flow:3.5,rpm:3200,sweep:4.0,fio2:100,temp:37.0,hb:9.0,vol:85,ticker:0};
+var quizBank=[
+  {q:"Paciente em VV-ECMO com SvO₂ de 80% (monitorada pré-oxigenador). O fluxo de ECMO é 5 L/min e a Hb é 10. O que isso indica?",opts:["Oxigenação adequada — SvO₂ alta é sempre bom","Recirculação do circuito — sangue já oxigenado sendo drenado novamente","Falha do oxigenador — o sangue não está sendo oxigenado","Hiperfluxo desnecessário"],correct:1,fb:"SvO₂ pré-oxigenador alta (> 75-80%) em VV-ECMO sugere recirculação: parte do sangue já oxigenado pela cânula de retorno está sendo aspirado pela cânula de drenagem antes de circular pelo paciente. Isso reduz a oferta efetiva de O₂. Condutas: reposicionar cânulas, aumentar distância entre elas, avaliar volume."},
+  {q:"Em VA-ECMO, o fluxo cai de 4.5 para 2.0 L/min com mesmo RPM. A pressão pré-bomba está -90 mmHg. Qual a causa mais provável?",opts:["Trombo no oxigenador","Hipovolemia com sucção venosa (chattering)","Falha mecânica da bomba","Vasodilatação sistêmica"],correct:1,fb:"Pressão pré-bomba muito negativa (< -80 mmHg) com queda de fluxo indica sucção excessiva da cânula venosa — a câmara do coração direito ou a veia cava está colabando. Causa mais comum: hipovolemia. Conduta imediata: expansão volêmica, reduzir RPM temporariamente, verificar posição da cânula."},
+  {q:"Paciente em VV-ECMO para SDRA. O sweep gas estava em 4 L/min. A gasometria mostra pH 7.52, pCO₂ 28. Qual ajuste?",opts:["Aumentar sweep para eliminar mais CO₂","Reduzir sweep gas — está eliminando CO₂ demais","Aumentar FiO₂ do ECMO","Trocar o oxigenador por falha"],correct:1,fb:"O sweep gas controla a eliminação de CO₂ de forma quase linear. pH 7.52 com pCO₂ 28 indica alcalose respiratória por hiperventilação do ECMO. Reduzir o sweep diminui a eliminação de CO₂, normalizando a pCO₂. Regra prática: sweep flow ≈ fluxo de ECMO para normocarbia; ajustar baseado na gasometria seriada."},
+  {q:"VA-ECMO femoral. O paciente está recebendo fluxo de 4 L/min retrógrado. A SpO₂ no membro superior esquerdo é 78% enquanto a SpO₂ femoral é 99%. O que está ocorrendo?",opts:["Falha do oxigenador","Síndrome de Harlequin (North-South Syndrome)","Tromboembolismo pulmonar","Isquemia de membro por cânula arterial"],correct:1,fb:"Síndrome de Harlequin: em VA-ECMO femoral, sangue desoxigenado do pulmão nativo perfunde aorta ascendente, coronárias e cérebro quando o coração ainda ejeta. A monitorização DEVE ser feita no membro superior direito (pré-ductal). Conduta: melhorar oxigenação pulmonar, adicionar cânula de retorno venoso, ou converter para VAV-ECMO."},
+  {q:"O ΔP transmembrana do oxigenador aumentou de 30 para 90 mmHg em 6 horas, sem mudança no fluxo ou RPM. O que isso significa?",opts:["Aumento do fluxo — normal","Trombose progressiva do oxigenador","Hipovolemia","Vasoconstrição pulmonar"],correct:1,fb:"O ΔP transmembrana reflete a resistência ao fluxo dentro do oxigenador. Aumento progressivo indica formação de trombos nas fibras. Valores > 50-60 mmHg com tendência crescente indicam necessidade de troca do oxigenador."}
+];
+var quizIdx=0,quizAnswered=false;
+
+function setMode(m){
+  state.mode=m;
+  document.querySelectorAll('.mode-btn').forEach(function(b,i){b.classList.toggle('active',['monitor','controls','complications','quiz'][i]===m)});
+  ['monitor','controls','complications','quiz'].forEach(function(id){document.getElementById('mode-'+id).style.display=id===m?'':'none'});
+  if(m==='quiz')renderQuiz();
+}
+
+function showTooltip(evt,title,func,comp,impact){
+  var tt=document.getElementById('tooltip');
+  var ca=document.getElementById('canvas-area');
+  var rect=ca.getBoundingClientRect();
+  document.getElementById('tt-title').textContent=title;
+  document.getElementById('tt-func').textContent=func;
+  document.getElementById('tt-comp').textContent=comp;
+  document.getElementById('tt-imp').textContent=impact;
+  var x=evt.clientX-rect.left+10;
+  var y=evt.clientY-rect.top+10;
+  if(x+230>rect.width)x=evt.clientX-rect.left-240;
+  if(y+200>rect.height)y=evt.clientY-rect.top-180;
+  tt.style.left=x+'px';tt.style.top=y+'px';
+  tt.classList.add('visible');
+  setTimeout(function(){tt.classList.remove('visible')},5000);
+}
+document.getElementById('canvas-area').addEventListener('click',function(e){if(e.target===this||e.target.id==='ecmo-svg')document.getElementById('tooltip').classList.remove('visible')});
+
+function setEcmoMode(m){state.ecmoMode=m;document.getElementById('ecmo-mode-label').textContent=m+'-ECMO';document.getElementById('btn-va').classList.toggle('active',m==='VA');document.getElementById('btn-vv').classList.toggle('active',m==='VV');updateAI();}
+
+var scenarios={
+  cardiogenic:{flow:3.5,rpm:3200,sweep:4.0,fio2:100,temp:37,hb:9,vol:80,label:'Choque Cardiogênico — VA-ECMO',ai:"Choque cardiogênico com DC nativo crítico (1,8 L/min). VA-ECMO assumindo perfusão sistêmica. SvO₂ de 58% indica extração elevada — DO₂ marginal. Lactato 3.2 em tendência de queda.",alert:"warn|Atenção: SvO₂ < 65%. Considerar aumento de fluxo para 4.0-4.5 L/min ou transfusão (Hb 9 é limítrofe).",alert2:"info|Monitorar função ventricular esquerda. LV distension pode ocorrer em VA-ECMO — observar P pulso no traço de PAI."},
+  ards:{flow:4.0,rpm:3400,sweep:5.0,fio2:60,temp:37,hb:10,vol:90,label:'SDRA Grave — VV-ECMO',ai:"SDRA grave com P/F < 80 mmHg refratário a manobras convencionais. VV-ECMO para suporte de troca gasosa e 'rest lung'. Ventilação ultra-protetora ativa.",alert:"info|Manter Vt ≤ 3 mL/kg peso ideal, Pplat ≤ 25 cmH₂O, PEEP 10-15. O ECMO faz a troca gasosa — o pulmão repousa.",alert2:"warn|Monitorar SvO₂ pré-oxigenador. Se > 75%: suspeitar recirculação."},
+  sepsis:{flow:4.5,rpm:3500,sweep:4.5,fio2:80,temp:38.5,hb:8,vol:75,label:'Sepse com Falência Orgânica',ai:"Sepse com choque refratário e falência miocárdica secundária. Vasoplegia (↓ RVS) + disfunção cardíaca = necessidade de ECMO.",alert:"danger|Febre 38.5°C + infecção ativa: revisar antibioticoterapia. Sepse é fator de risco para trombose e hemólise no circuito.",alert2:"warn|Hb 8 g/dL limítrofe. Considerar transfusão para Hb ≥ 10 em contexto de choque com DO₂ comprometido."},
+  postcardiac:{flow:3.0,rpm:3000,sweep:3.5,fio2:100,temp:36.5,hb:10,vol:85,label:'Pós-Cirurgia Cardíaca',ai:"ECMO-VA pós-cardiotomia. Coração em recuperação após cirurgia. Avaliar progressivamente redução do suporte (weaning) com ecocardiograma seriado.",alert:"info|Realizar eco diário. Critérios weaning: FEVE > 20-25%, VTI LVOT > 10 cm, PA > 60/40 com fluxo 1.5 L/min.",alert2:"info|Anticoagulação com heparina: TTPA 60-80s ou anti-Xa 0.3-0.5. Risco de sangramento pós-cirurgia cardíaca."}
+};
+
+var complications={
+  thrombus:{effect:function(s){s.dp=95;s.ppost=380;s.po2=180;s.sao2=86},ai:"TROMBOSE DO OXIGENADOR detectada. ΔP transmembrana 95 mmHg (↑ crítico). pO₂ pós-membrana em queda.",alert:"danger|AÇÃO IMEDIATA: Preparar troca de oxigenador. Avaliar anticoagulação (ACT/TTPA). Aumentar heparina se ACT < 180s.",fisiopato:"Trombos nas fibras ocas de PMP causam ↑ resistência ao fluxo (↑ ΔP) e redução da superfície de troca gasosa."},
+  oxygenator:{effect:function(s){s.po2=55;s.sao2=78;s.pco2=68;s.ph=7.18;s.dp=20;s.ppost=200},ai:"FALHA DO OXIGENADOR identificada. pO₂ pós-membrana < 100 mmHg com FiO₂ 100% — eficiência de troca gravemente comprometida.",alert:"danger|EMERGÊNCIA: Troca imediata do oxigenador. Suporte ventilatório máximo enquanto prepara troca.",fisiopato:"Plasma leakage ou trombose maciça. A membrana perde capacidade de separar fases gasosa e sanguínea."},
+  recirc:{effect:function(s){s.svo2=82;s.sao2=80;s.lac=5.8},ai:"RECIRCULAÇÃO em VV-ECMO detectada. SvO₂ pré-oxigenador elevada (82%), mas paciente permanece hipoxêmico.",alert:"warn|Recirculação: avaliar posição das cânulas com ecocardiograma. Distância ideal entre dreno e retorno ≥ 10 cm.",fisiopato:"O fluxo de retorno (alta SatO₂) está sendo aspirado pela cânula de drenagem, reduzindo a fração de sangue venoso real sendo oxigenado."},
+  hypovolemia:{effect:function(s){s.ppre=-95;s.flow=Math.max(1.5,s.flow-1.2);s.map=55;s.lac=4.8},ai:"HIPOVOLEMIA detectada. Pressão pré-bomba -95 mmHg (crítica). Chattering da cânula venosa.",alert:"danger|Expansão volêmica imediata: 250-500 mL SF 0.9% em bolus. Reduzir RPM temporariamente.",fisiopato:"↓ Pré-carga venosa → câmara cardíaca direita colapsa → sucção da cânula → chattering → hemólise por trauma mecânico."},
+  airembolism:{effect:function(s){s.flow=Math.max(0.5,s.flow-2);s.map=45;s.lac=7},ai:"ENTRADA DE AR no circuito! Bolhas visíveis na linha venosa. Fluxo caindo drasticamente.",alert:"danger|CLAMPAR circuito imediatamente. Posição Trendelenburg. Aspirar ar pelo porto de purga. Em VA-ECMO: embolia gasosa cerebral e coronariana é catastrófica.",fisiopato:"Ar no circuito cria bolhas que reduzem fluxo efetivo e podem embolizar órgãos-alvo."},
+  hemolysis:{effect:function(s){s.hb=7.5;s.lac=4.2},ai:"HEMÓLISE detectada. Urina avermelhada (hemoglobinúria), ↑ LDH > 500, queda de Hb sem sangramento evidente.",alert:"warn|Investigar causa: RPM excessivo, pressão pré-bomba muito negativa, trombo intracircuito. Aumentar fluxo urinário > 1 mL/kg/h.",fisiopato:"Trauma mecânico às hemácias libera Hb livre → lesão renal, disfunção endotelial, consumo de NO → vasoconstrição, ↑ trombose."},
+  malpositioning:{effect:function(s){s.flow=Math.max(1.8,s.flow-1.5);s.ppre=-85;s.svo2=48},ai:"CÂNULA MALPOSICIONADA suspeita. Fluxo inadequado apesar de RPM normal.",alert:"danger|Ecocardiograma à beira leito imediato. Fluoroscopia se disponível. NÃO reposicionar sem visibilização adequada.",fisiopato:"Cânula venosa posicionada em veia hepática ou câmara cardíaca inadequada compromete drenagem."},
+  pumpdysf:{effect:function(s){s.flow=Math.max(1.0,s.flow*0.4);s.map=40;s.lac=8;s.rpm=Math.max(800,s.rpm*0.4)},ai:"DISFUNÇÃO DA BOMBA crítica. Queda abrupta de RPM e fluxo. Falha mecânica ou elétrica.",alert:"danger|EMERGÊNCIA MÁXIMA: Clampar circuito. Ventilação máxima. RCP se indicado. Ativar protocolo de troca de bomba emergencial.",fisiopato:"Perda súbita de suporte circulatório em paciente completamente dependente de ECMO = parada circulatória efetiva."}
+};
+
+var activeComp=null;
+var baseState={ph:7.28,pco2:52,po2:68,hco3:18,be:-7,sao2:94,svo2:58,lac:3.2,map:70,hr:110,co:1.8,hb:9,svr:1200,ppre:-60,ppost:280,dp:30,flow:3.5,rpm:3200,sweep:4,fio2:100,temp:37};
+var dynState=Object.assign({},baseState);
+
+function activateComplication(key){
+  clearComplications(true);activeComp=key;dynState=Object.assign({},baseState);
+  complications[key].effect(dynState);
+  document.getElementById('cb-'+key).classList.add('active-comp');
+  document.getElementById('comp-indicator').style.display='';
+  var panel=document.getElementById('comp-ai-panel');
+  panel.innerHTML='<div class="ai-msg"><strong>⚠ '+key.toUpperCase()+'</strong><br>'+complications[key].ai+'<br><br><strong>Fisiopatologia:</strong><br>'+complications[key].fisiopato+'</div>';
+  document.getElementById('alerts-area').innerHTML='<div class="alert-box alert-danger">'+complications[key].alert.replace(/^(danger|warn)\|/,'')+'</div>';
+  updateDisplayFromDynState();
+}
+
+function clearComplications(silent){
+  activeComp=null;dynState=Object.assign({},baseState);
+  document.querySelectorAll('.comp-btn').forEach(function(b){b.classList.remove('active-comp')});
+  document.getElementById('comp-indicator').style.display='none';
+  if(!silent){document.getElementById('alerts-area').innerHTML='';document.getElementById('comp-ai-panel').innerHTML='<div class="ai-msg">Selecione uma complicação para ver parâmetros alterados, fisiopatologia e condutas.</div>';updateDisplay();}
+}
+
+function adjustParam(key,val){
+  var v=parseFloat(val);state[key]=v;
+  document.getElementById('sl-'+key+'-val').textContent=v.toFixed(key==='rpm'?0:1);
+  recalcPhysiology();updateDisplayFromDynState();generateCtrlAI();
+}
+
+function recalcPhysiology(){
+  var f=state.flow,h=state.hb,sw=state.sweep,fi=state.fio2,vol=state.vol;
+  dynState.flow=f;dynState.sao2=Math.min(99,88+fi*0.1+f*0.8);dynState.po2=Math.min(550,fi*4.5+f*8);
+  dynState.pco2=Math.max(25,60-sw*2.2);dynState.ph=Math.max(7.0,Math.min(7.55,7.40-(dynState.pco2-40)*0.008));
+  dynState.hco3=Math.max(10,24+(dynState.ph-7.40)*10);dynState.be=Math.max(-15,Math.min(10,(dynState.hco3-24)*0.6));
+  dynState.svo2=Math.min(85,Math.max(35,40+f*8+h*1.5-20));dynState.lac=Math.max(0.8,Math.min(12,8-f*1.2-h*0.3));
+  dynState.map=Math.max(40,Math.min(100,50+f*8+vol*0.2));dynState.ppre=Math.max(-120,-20-(90-vol)*0.6-f*4);
+  dynState.ppost=Math.max(100,Math.min(450,200+f*22));dynState.dp=Math.max(15,Math.min(80,18+f*3));
+  dynState.rpm=state.rpm;dynState.hb=h;dynState.co=Math.max(0.2,Math.min(2.5,3.5-f*0.4));
+  dynState.temp=state.temp;dynState.sweep=sw;dynState.fio2=fi;
+}
+
+function generateCtrlAI(){
+  var msgs=[];
+  if(dynState.lac>4)msgs.push("⚠ Lactato elevado: DO₂ insuficiente. Considerar ↑ fluxo ou transfusão.");
+  if(dynState.svo2<55)msgs.push("⚠ SvO₂ crítica (<55%): extração máxima de O₂. ↑ fluxo, Hb ou ↓ demanda.");
+  if(dynState.pco2>60)msgs.push("⚠ Hipercapnia: ↑ sweep gas ou verificar permeabilidade do oxigenador.");
+  if(dynState.pco2<30)msgs.push("⚠ Hipocapnia: ↓ sweep gas. Risco de vasoconstrição cerebral.");
+  if(dynState.map<55)msgs.push("⚠ PAM crítica: expansão volêmica + avaliar ↑ fluxo e vasopressores.");
+  if(dynState.ppre<-80)msgs.push("⚠ P pré-bomba muito negativa: risco de sucção/hemólise. Expandir volume.");
+  if(dynState.dp>60)msgs.push("⚠ ΔP oxigenador elevado: provável trombose. Planejar troca.");
+  if(msgs.length===0)msgs.push("✓ Parâmetros hemodinâmicos e de ECMO dentro das metas. Manter monitoramento contínuo.");
+  document.getElementById('ctrl-ai-msg').innerHTML=msgs.join('<br><br>');
+}
+
+function updateDisplayFromDynState(){
+  var d=dynState;
+  function set(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
+  set('p-hr',Math.round(d.hr||110));set('p-bp',Math.round((d.map||70)*1.3+5)+'/'+(Math.round((d.map||70)*0.7-5)));
+  set('p-map',Math.round(d.map||70));set('p-co',(d.co||1.8).toFixed(1));set('p-sao2',Math.round(d.sao2||94)+'%');
+  set('p-svo2',Math.round(d.svo2||58)+'%');set('p-lac',(d.lac||3.2).toFixed(1));set('p-hb',(d.hb||9).toFixed(1));
+  set('p-svr',Math.round(d.svr||1200));set('e-flow',(d.flow||3.5).toFixed(1));set('e-rpm',Math.round(d.rpm||3200));
+  set('e-sweep',(d.sweep||4).toFixed(1));set('e-fio2',Math.round(d.fio2||100));set('e-temp',(d.temp||37).toFixed(1));
+  set('e-ppre',Math.round(d.ppre||-60));set('e-ppost',Math.round(d.ppost||280));set('e-dp',Math.round(d.dp||30));
+  set('g-ph',(d.ph||7.28).toFixed(2));set('g-pco2',Math.round(d.pco2||52));set('g-po2',Math.round(d.po2||68));
+  set('g-hco3',Math.round(d.hco3||18));set('g-be',Math.round(d.be||-7));
+  set('ppre-label',Math.round(d.ppre||-60));set('ppost-label',Math.round(d.ppost||280));
+  set('mon-spo2',Math.round(d.sao2||94)+'%');set('mon-hr',Math.round(d.hr||110));
+  colorParams();
+}
+
+function colorParams(){
+  var pairs=[['p-map',parseFloat(document.getElementById('p-map').textContent),55,65,false],['p-sao2',parseFloat(document.getElementById('p-sao2').textContent),88,92,false],['p-svo2',parseFloat(document.getElementById('p-svo2').textContent),55,65,false],['p-lac',parseFloat(document.getElementById('p-lac').textContent),4,2.5,true],['g-ph',parseFloat(document.getElementById('g-ph').textContent),7.20,7.35,false],['e-dp',parseFloat(document.getElementById('e-dp').textContent),60,40,true],['e-ppre',parseFloat(document.getElementById('e-ppre').textContent),-90,-75,true]];
+  pairs.forEach(function(p){var el=document.getElementById(p[0]);if(!el)return;var v=p[1],dn=p[2],wn=p[3],inv=p[4];el.className='param-val'+(inv?(v>=dn?' danger':v>=wn?' warn':' ok'):(v<=dn?' danger':v<=wn?' warn':' ok'));});
+}
+
+function updateDisplay(){recalcPhysiology();updateDisplayFromDynState();updateAI();}
+
+function updateAI(){
+  var sc=scenarios[state.scenario];if(!sc)return;
+  document.getElementById('ai-msg-1').innerHTML='<strong>'+sc.label+'</strong><br>'+sc.ai;
+  if(sc.alert){var t=sc.alert.split('|')[0],m=sc.alert.split('|')[1];document.getElementById('ai-msg-2').innerHTML='<strong>Alerta:</strong><br>'+m;document.getElementById('ai-msg-2').className='ai-msg alert-'+t;}
+  if(sc.alert2){var t2=sc.alert2.split('|')[0],m2=sc.alert2.split('|')[1];document.getElementById('ai-msg-3').innerHTML='<strong>Orientação:</strong><br>'+m2;document.getElementById('ai-msg-3').className='ai-msg alert-'+t2;}
+}
+
+function loadScenario(s,evt){
+  state.scenario=s;
+  document.querySelectorAll('.scenario-btn').forEach(function(b){b.classList.remove('active')});
+  if(evt&&evt.target)evt.target.classList.add('active');
+  var sc=scenarios[s];Object.assign(state,sc);updateDisplay();
+}
+
+function renderQuiz(){
+  var q=quizBank[quizIdx%quizBank.length];quizAnswered=false;
+  var html='<div class="quiz-q">Caso Clínico '+(quizIdx+1)+'/'+quizBank.length+':<br><br>'+q.q+'</div>';
+  q.opts.forEach(function(opt,i){html+='<button class="quiz-opt" onclick="answerQuiz('+i+')">'+String.fromCharCode(65+i)+') '+opt+'</button>';});
+  html+='<div class="quiz-fb" id="quiz-fb" style="display:none"></div>';
+  html+='<button class="next-btn" id="next-quiz-btn" style="display:none;margin-top:8px" onclick="nextQuiz()">Próximo caso</button>';
+  document.getElementById('quiz-area').innerHTML=html;
+}
+
+function answerQuiz(idx){
+  if(quizAnswered)return;quizAnswered=true;
+  var q=quizBank[quizIdx%quizBank.length];
+  document.querySelectorAll('.quiz-opt').forEach(function(b,i){if(i===q.correct)b.classList.add('correct');else if(i===idx&&i!==q.correct)b.classList.add('wrong');b.style.pointerEvents='none';});
+  var fb=document.getElementById('quiz-fb');fb.style.display='';
+  fb.innerHTML='<strong>'+(idx===q.correct?'✓ Correto!':'✗ Incorreto.')+'</strong><br><br>'+q.fb;
+  document.getElementById('next-quiz-btn').style.display='';
+}
+function nextQuiz(){quizIdx++;renderQuiz();}
+
+recalcPhysiology();updateDisplayFromDynState();updateAI();
+setInterval(function(){
+  state.ticker++;
+  if(!activeComp){
+    dynState.hr=110+Math.round(Math.sin(state.ticker*0.3)*3);
+    document.getElementById('mon-hr').textContent=dynState.hr;
+    document.getElementById('p-hr').textContent=dynState.hr;
+    dynState.sao2=Math.min(99,(dynState.sao2||94)+(Math.random()-0.5)*0.5);
+    document.getElementById('p-sao2').textContent=Math.round(dynState.sao2)+'%';
+    document.getElementById('mon-spo2').textContent=Math.round(dynState.sao2)+'%';
+  }
+},800);
+</script>
+</body>
+</html>
